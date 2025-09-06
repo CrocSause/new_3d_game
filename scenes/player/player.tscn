@@ -1,0 +1,300 @@
+[gd_scene load_steps=28 format=3 uid="uid://cw7a7d30oh8r0"]
+
+[ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_o2c5k"]
+
+[sub_resource type="CapsuleShape3D" id="CapsuleShape3D_ri5cu"]
+radius = 0.3
+height = 1.8
+
+[sub_resource type="StandardMaterial3D" id="StandardMaterial3D_q4gtm"]
+albedo_color = Color(0.615686, 0.313726, 0.145098, 1)
+roughness = 0.8
+
+[sub_resource type="CapsuleMesh" id="CapsuleMesh_wm2ff"]
+material = SubResource("StandardMaterial3D_q4gtm")
+radius = 0.3
+height = 1.8
+radial_segments = 8
+rings = 4
+
+[sub_resource type="SphereShape3D" id="SphereShape3D_xuqot"]
+radius = 1.5
+
+[sub_resource type="Animation" id="Animation_uhon0"]
+length = 0.001
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("MeshPivot:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("MeshPivot:rotation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("MeshPivot:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_ce3d0"]
+resource_name = "attack_fists"
+length = 0.8
+step = 0.0
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("MeshPivot:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(-0.01, 0.2, 0.3, 0.4, 0.6, 0.8),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(1, 1, 1), Vector3(1.1, 0.95, 1.1), Vector3(1.3, 0.8, 1.3), Vector3(0.7, 1.4, 0.7), Vector3(1.1, 0.9, 1.1), Vector3(1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_mjivy"]
+resource_name = "dodge"
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("MeshPivot:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.3, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(1, 1, 1.2), Vector3(0.7, 1.4, 1.2), Vector3(1.3, 0.6, 1.3), Vector3(1, 1, 1.286)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("MeshPivot:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.1, 0.3, 0.4),
+"transitions": PackedFloat32Array(1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0, 0, 0), Vector3(0, 0, 0), Vector3(0, -0.2, 0), Vector3(0, -0.171429, 0)]
+}
+
+[sub_resource type="Animation" id="Animation_7a10o"]
+resource_name = "idle"
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("MeshPivot:position")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0, 0)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("MeshPivot:rotation")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(0, 0, 0)]
+}
+tracks/2/type = "value"
+tracks/2/imported = false
+tracks/2/enabled = true
+tracks/2/path = NodePath("MeshPivot:scale")
+tracks/2/interp = 1
+tracks/2/loop_wrap = true
+tracks/2/keys = {
+"times": PackedFloat32Array(0),
+"transitions": PackedFloat32Array(1),
+"update": 0,
+"values": [Vector3(1, 1, 1)]
+}
+
+[sub_resource type="Animation" id="Animation_xarcp"]
+resource_name = "walk"
+loop_mode = 1
+tracks/0/type = "value"
+tracks/0/imported = false
+tracks/0/enabled = true
+tracks/0/path = NodePath("MeshPivot:scale")
+tracks/0/interp = 1
+tracks/0/loop_wrap = true
+tracks/0/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.5, 0.7, 1),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(1, 1, 1.2), Vector3(0.95, 1.05, 0.95), Vector3(1, 1, 1.044), Vector3(0.95, 1.05, 1.106), Vector3(1, 1, 1.2)]
+}
+tracks/1/type = "value"
+tracks/1/imported = false
+tracks/1/enabled = true
+tracks/1/path = NodePath("MeshPivot:position")
+tracks/1/interp = 1
+tracks/1/loop_wrap = true
+tracks/1/keys = {
+"times": PackedFloat32Array(0, 0.2, 0.5, 0.7, 1),
+"transitions": PackedFloat32Array(1, 1, 1, 1, 1),
+"update": 0,
+"values": [Vector3(0, -1.49012e-08, 0), Vector3(0, -1.49012e-08, 0), Vector3(0, -1.49012e-08, 0), Vector3(0, -1.49012e-08, 0), Vector3(0, -1.49012e-08, 0)]
+}
+
+[sub_resource type="AnimationLibrary" id="AnimationLibrary_s4aee"]
+_data = {
+"RESET": SubResource("Animation_uhon0"),
+"attack_fists": SubResource("Animation_ce3d0"),
+"dodge": SubResource("Animation_mjivy"),
+"idle": SubResource("Animation_7a10o"),
+"walk": SubResource("Animation_xarcp")
+}
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_an0o2"]
+animation = &"attack_fists"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_kyr50"]
+animation = &"dodge"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_eob21"]
+animation = &"idle"
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_vmfw1"]
+resource_name = "attack"
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_ydxtj"]
+resource_name = "dodge"
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_d7wxy"]
+switch_mode = 2
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_chcc3"]
+switch_mode = 2
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachineTransition" id="AnimationNodeStateMachineTransition_wjwls"]
+advance_mode = 2
+
+[sub_resource type="AnimationNodeStateMachine" id="AnimationNodeStateMachine_pugdk"]
+states/End/position = Vector2(76.5, 122)
+states/Start/position = Vector2(214, 238.906)
+states/attacking/node = SubResource("AnimationNodeAnimation_an0o2")
+states/attacking/position = Vector2(719.469, 154)
+states/dodging/node = SubResource("AnimationNodeAnimation_kyr50")
+states/dodging/position = Vector2(720.063, 329)
+states/idle_combat/node = SubResource("AnimationNodeAnimation_eob21")
+states/idle_combat/position = Vector2(424, 238.063)
+transitions = ["idle_combat", "attacking", SubResource("AnimationNodeStateMachineTransition_vmfw1"), "idle_combat", "dodging", SubResource("AnimationNodeStateMachineTransition_ydxtj"), "attacking", "idle_combat", SubResource("AnimationNodeStateMachineTransition_d7wxy"), "dodging", "idle_combat", SubResource("AnimationNodeStateMachineTransition_chcc3"), "Start", "idle_combat", SubResource("AnimationNodeStateMachineTransition_wjwls")]
+graph_offset = Vector2(0, 122.442)
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_cb01c"]
+animation = &"attack_fists"
+
+[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_an2tm"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_52q2p"]
+animation = &"dodge"
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_srbcp"]
+animation = &"idle"
+
+[sub_resource type="AnimationNodeBlend2" id="AnimationNodeBlend2_1so27"]
+
+[sub_resource type="AnimationNodeAnimation" id="AnimationNodeAnimation_dyifx"]
+animation = &"walk"
+
+[sub_resource type="AnimationNodeBlendTree" id="AnimationNodeBlendTree_hrmvs"]
+nodes/action_state/node = SubResource("AnimationNodeStateMachine_pugdk")
+nodes/action_state/position = Vector2(860, 360)
+nodes/attack_anim/node = SubResource("AnimationNodeAnimation_cb01c")
+nodes/attack_anim/position = Vector2(250, 80)
+nodes/combat_blend/node = SubResource("AnimationNodeBlend2_an2tm")
+nodes/combat_blend/position = Vector2(1070, 150)
+nodes/dodge_anim/node = SubResource("AnimationNodeAnimation_52q2p")
+nodes/dodge_anim/position = Vector2(260, 210)
+nodes/idle_anim/node = SubResource("AnimationNodeAnimation_srbcp")
+nodes/idle_anim/position = Vector2(500, 10)
+nodes/movement_blend/node = SubResource("AnimationNodeBlend2_1so27")
+nodes/movement_blend/position = Vector2(850, 150)
+nodes/output/position = Vector2(1240, 220)
+nodes/walk_anim/node = SubResource("AnimationNodeAnimation_dyifx")
+nodes/walk_anim/position = Vector2(500, 130)
+node_connections = [&"combat_blend", 0, &"movement_blend", &"combat_blend", 1, &"action_state", &"movement_blend", 0, &"idle_anim", &"movement_blend", 1, &"walk_anim", &"output", 0, &"combat_blend"]
+
+[node name="Player" type="CharacterBody3D"]
+collision_mask = 6
+script = ExtResource("1_o2c5k")
+
+[node name="CollisionShape3D" type="CollisionShape3D" parent="."]
+shape = SubResource("CapsuleShape3D_ri5cu")
+
+[node name="CameraPivot" type="Node3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1.6, 0)
+
+[node name="Camera3D" type="Camera3D" parent="CameraPivot"]
+
+[node name="InteractionRaycast" type="RayCast3D" parent="CameraPivot"]
+target_position = Vector3(0, 0, -2)
+collision_mask = 6
+
+[node name="MeshPivot" type="Node3D" parent="."]
+
+[node name="PlayerMesh" type="MeshInstance3D" parent="MeshPivot"]
+mesh = SubResource("CapsuleMesh_wm2ff")
+
+[node name="MeleeArea" type="Area3D" parent="."]
+transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, -1)
+collision_layer = 8
+collision_mask = 4
+monitorable = false
+
+[node name="MeleeCollisionShape" type="CollisionShape3D" parent="MeleeArea"]
+shape = SubResource("SphereShape3D_xuqot")
+
+[node name="AnimationPlayer" type="AnimationPlayer" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_s4aee")
+}
+autoplay = "idle"
+
+[node name="AnimationTree" type="AnimationTree" parent="."]
+libraries = {
+"": SubResource("AnimationLibrary_s4aee")
+}
+tree_root = SubResource("AnimationNodeBlendTree_hrmvs")
+anim_player = NodePath("../AnimationPlayer")
+parameters/combat_blend/blend_amount = 0
+parameters/movement_blend/blend_amount = 0
