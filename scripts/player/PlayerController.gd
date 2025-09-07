@@ -75,6 +75,10 @@ func _ready():
 	print("Player initialized with targeting system")
 
 func _input(event: InputEvent) -> void:
+	# Don't process input if game is paused
+	if get_tree().paused:
+		return
+		
 	# Mouse capture toggle
 	if event.is_action_pressed("ui_cancel"):
 		if Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:

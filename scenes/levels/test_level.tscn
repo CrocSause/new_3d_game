@@ -1,7 +1,10 @@
-[gd_scene load_steps=19 format=3 uid="uid://cadnxpfwar70q"]
+[gd_scene load_steps=22 format=3 uid="uid://cadnxpfwar70q"]
 
 [ext_resource type="PackedScene" uid="uid://cw7a7d30oh8r0" path="res://scenes/player/player.tscn" id="1_6u2if"]
 [ext_resource type="PackedScene" uid="uid://b8fanqt6wmmmm" path="res://scenes/npc/combat_test_target.tscn" id="2_w35bc"]
+[ext_resource type="Script" path="res://scenes/levels/CombatHUD.gd" id="3_1cqa5"]
+[ext_resource type="Script" path="res://scripts/ui/PauseMenu.gd" id="3_2gc05"]
+[ext_resource type="Script" path="res://scenes/levels/InteractionPrompt.gd" id="4_m1e27"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_upc4k"]
 albedo_color = Color(0.74902, 0.729412, 0.776471, 1)
@@ -58,6 +61,117 @@ polygons = [PackedInt32Array(3, 2, 0), PackedInt32Array(0, 2, 1)]
 size = Vector3(50, 1, 50)
 
 [node name="TestLevel" type="Node3D"]
+
+[node name="UILayer" type="CanvasLayer" parent="."]
+
+[node name="CombatHud" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("3_1cqa5")
+
+[node name="HealthBar" type="ProgressBar" parent="UILayer/CombatHud"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 4.0
+offset_bottom = 27.0
+
+[node name="HealthText" type="Label" parent="UILayer/CombatHud"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_left = 10.0
+offset_top = 10.0
+offset_right = 538.0
+offset_bottom = 60.0
+text = "WASD: Move | Mouse: Look | Shift: Run | Ctrl: Crouch | Tab: Combat"
+
+[node name="StaminaBar" type="ProgressBar" parent="UILayer/CombatHud"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 4.0
+offset_bottom = 27.0
+
+[node name="CombatIndicator" type="Label" parent="UILayer/CombatHud"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="TargetInfo" type="Control" parent="UILayer/CombatHud"]
+unique_name_in_owner = true
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="TargetName" type="Label" parent="UILayer/CombatHud/TargetInfo"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="Crosshair" type="Control" parent="UILayer/CombatHud"]
+unique_name_in_owner = true
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="InteractionPrompt" type="Control" parent="UILayer"]
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("4_m1e27")
+
+[node name="PromptLabel" type="Label" parent="UILayer/InteractionPrompt"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="KeyHint" type="Label" parent="UILayer/InteractionPrompt"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 23.0
+
+[node name="Background" type="NinePatchRect" parent="UILayer/InteractionPrompt"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 40.0
+offset_bottom = 40.0
+
+[node name="PauseMenu" type="Control" parent="UILayer"]
+process_mode = 3
+layout_mode = 3
+anchors_preset = 0
+offset_right = 40.0
+offset_bottom = 40.0
+script = ExtResource("3_2gc05")
+
+[node name="ResumeButton" type="Button" parent="UILayer/PauseMenu"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="OptionsButton" type="Button" parent="UILayer/PauseMenu"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="MainMenuButton" type="Button" parent="UILayer/PauseMenu"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
+
+[node name="QuitButton" type="Button" parent="UILayer/PauseMenu"]
+unique_name_in_owner = true
+layout_mode = 0
+offset_right = 8.0
+offset_bottom = 8.0
 
 [node name="Player" parent="." instance=ExtResource("1_6u2if")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)
@@ -153,22 +267,6 @@ shadow_enabled = true
 
 [node name="Environment" type="WorldEnvironment" parent="Lighting"]
 environment = SubResource("Environment_4ojpr")
-
-[node name="UI" type="Node3D" parent="."]
-
-[node name="Control" type="Control" parent="UI"]
-layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-
-[node name="DebugLabel" type="Label" parent="UI/Control"]
-layout_mode = 0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = 538.0
-offset_bottom = 60.0
-text = "WASD: Move | Mouse: Look | Shift: Run | Ctrl: Crouch | Tab: Combat"
 
 [node name="NavigationRegion3D" type="NavigationRegion3D" parent="."]
 navigation_mesh = SubResource("NavigationMesh_fnhne")
