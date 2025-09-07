@@ -1,6 +1,7 @@
-[gd_scene load_steps=28 format=3 uid="uid://cw7a7d30oh8r0"]
+[gd_scene load_steps=29 format=3 uid="uid://cw7a7d30oh8r0"]
 
 [ext_resource type="Script" path="res://scripts/player/PlayerController.gd" id="1_o2c5k"]
+[ext_resource type="Script" path="res://scripts/player/TargetingSystem.gd" id="2_23bkg"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_ri5cu"]
 radius = 0.3
@@ -255,7 +256,7 @@ nodes/walk_anim/position = Vector2(500, 130)
 node_connections = [&"combat_blend", 0, &"movement_blend", &"combat_blend", 1, &"action_state", &"movement_blend", 0, &"idle_anim", &"movement_blend", 1, &"walk_anim", &"output", 0, &"combat_blend"]
 
 [node name="Player" type="CharacterBody3D"]
-collision_mask = 6
+collision_mask = 22
 script = ExtResource("1_o2c5k")
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
@@ -298,3 +299,6 @@ tree_root = SubResource("AnimationNodeBlendTree_hrmvs")
 anim_player = NodePath("../AnimationPlayer")
 parameters/combat_blend/blend_amount = 0
 parameters/movement_blend/blend_amount = 0
+
+[node name="TargetingSystem" type="Node3D" parent="."]
+script = ExtResource("2_23bkg")

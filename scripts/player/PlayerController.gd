@@ -15,6 +15,9 @@ class_name PlayerController
 @export var dodge_cooldown: float = 0.8
 @export var block_reduction: float = 0.5
 
+# Camera settings
+@export var lock_smoothing_speed: float = 12.0
+
 # References
 @onready var camera_pivot: Node3D = $CameraPivot
 @onready var camera: Camera3D = $CameraPivot/Camera3D
@@ -24,6 +27,7 @@ class_name PlayerController
 @onready var animation_tree: AnimationTree = $AnimationTree
 @onready var melee_area: Area3D = $MeleeArea
 @onready var interaction_raycast: RayCast3D = $CameraPivot/InteractionRaycast
+@onready var targeting_system: TargetingSystem = $TargetingSystem
 
 # State variables
 var is_in_combat: bool = false
@@ -31,6 +35,7 @@ var health: float = 100.0
 var max_health: float = 100.0
 var equipped_weapon: String = "fists"
 var is_dead: bool = false
+var can_capture_mouse: bool = true  # guards click-to-recapture (future pause-safe)
 
 # Movement state
 var gravity: float = ProjectSettings.get_setting("physics/3d/default_gravity")
@@ -41,6 +46,9 @@ var is_dodging: bool = false
 var is_blocking: bool = false
 var can_dodge: bool = true
 
+# Camera lock-on state
+var lock_on_active: bool = false
+
 # Input buffering
 var input_buffer: Dictionary = {}
 var buffer_window: float = 0.12
@@ -49,6 +57,9 @@ func _ready():
 	capture_mouse()
 	animation_tree.active = true
 	
+	# Add player to group for exclusion in targeting
+	add_to_group("player")
+	
 	# Connect melee area
 	melee_area.body_entered.connect(_on_melee_target_entered)
 	melee_area.body_exited.connect(_on_melee_target_exited)
@@ -56,7 +67,12 @@ func _ready():
 	# Set up interaction raycast
 	interaction_raycast.target_position = Vector3(0, 0, -2)
 	
-	print("Player initialized - 2-script setup restored")
+	# Connect targeting system signals
+	if targeting_system:
+		targeting_system.target_acquired.connect(_on_target_acquired)
+		targeting_system.target_lost.connect(_on_target_lost)
+	
+	print("Player initialized with targeting system")
 
 func _input(event: InputEvent) -> void:
 	# Mouse capture toggle
@@ -68,21 +84,38 @@ func _input(event: InputEvent) -> void:
 		get_viewport().set_input_as_handled()
 		return
 	
-	# Click to capture
-	if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED and event is InputEventMouseButton and event.pressed:
+	# Click to capture (only when allowed)
+	if Input.get_mouse_mode() != Input.MOUSE_MODE_CAPTURED \
+	and event is InputEventMouseButton and event.pressed \
+	and can_capture_mouse:
 		capture_mouse()
 		get_viewport().set_input_as_handled()
 		return
+
 	
-	# Mouse look
+	# Mouse look - ONLY when not locked on
 	if event is InputEventMouseMotion and Input.get_mouse_mode() == Input.MOUSE_MODE_CAPTURED:
-		# Yaw - rotate player
-		rotate_y(-event.relative.x * mouse_sensitivity)
-		# Pitch - rotate camera pivot
-		camera_pivot.rotate_x(-event.relative.y * mouse_sensitivity)
-		camera_pivot.rotation.x = clamp(camera_pivot.rotation.x, -PI/2, PI/2)
+		if not lock_on_active:
+			# Apply normal mouse look
+			rotate_y(-event.relative.x * mouse_sensitivity)
+			camera_pivot.rotate_x(-event.relative.y * mouse_sensitivity)
+			camera_pivot.rotation.x = clamp(camera_pivot.rotation.x, -PI/2, PI/2)
+		# If locked on, ignore mouse input entirely - prevents accumulation
 
 func _unhandled_input(event: InputEvent) -> void:
+	# Targeting controls
+	if event.is_action_pressed("lock_on"):
+		if targeting_system:
+			targeting_system.toggle_lock_on()
+	
+	if event.is_action_pressed("cycle_target_right"):
+		if targeting_system:
+			targeting_system.cycle_target(1)
+	
+	if event.is_action_pressed("cycle_target_left"):
+		if targeting_system:
+			targeting_system.cycle_target(-1)
+	
 	# Buffer combat inputs
 	if event.is_action_pressed("attack"):
 		_buffer_input("attack")
@@ -96,6 +129,9 @@ func _unhandled_input(event: InputEvent) -> void:
 func _physics_process(delta: float) -> void:
 	# Handle movement
 	_handle_movement(delta)
+	
+	# Handle camera lock-on
+	_update_camera_lock_on_simple(delta)
 	
 	# Handle combat mode toggle
 	if Input.is_action_just_pressed("toggle_combat"):
@@ -119,6 +155,32 @@ func _physics_process(delta: float) -> void:
 	
 	# Update input buffer
 	_update_input_buffer(delta)
+
+# Uses Godot Built in look_at function
+func _update_camera_lock_on_simple(_delta: float) -> void:
+	if not targeting_system or not targeting_system.is_locked_on():
+		if lock_on_active:
+			lock_on_active = false
+			print("Camera lock released")
+		return
+	
+	if not lock_on_active:
+		lock_on_active = true
+		print("Camera lock engaged")
+	
+	var target = targeting_system.get_current_target()
+	if not target:
+		return
+	
+	# Simple approach: use look_at
+	var target_pos = target.global_position
+	print("DEBUG SIMPLE: Looking at ", target_pos)
+	
+	# Look at target (this rotates the entire player)
+	look_at(target_pos, Vector3.UP)
+	
+	# Reset camera pivot to neutral
+	camera_pivot.rotation.x = 0
 
 func _handle_movement(delta: float) -> void:
 	# Get input
@@ -163,13 +225,37 @@ func _handle_movement(delta: float) -> void:
 		velocity.x = movement_dir.x
 		velocity.z = movement_dir.z
 		
-		# Rotate mesh in combat for animation flair
+		# Rotate mesh in combat for animation flair, but face target when locked on
 		if is_in_combat:
-			var target_yaw := atan2(movement_dir.x, movement_dir.z)
+			var target_yaw: float
+			
+			if targeting_system and targeting_system.is_locked_on():
+				# Face the locked target
+				var target = targeting_system.get_current_target()
+				if target:
+					var direction_to_target = (target.global_position - global_position)
+					direction_to_target.y = 0
+					direction_to_target = direction_to_target.normalized()
+					target_yaw = atan2(direction_to_target.x, direction_to_target.z)
+			else:
+				# Face movement direction
+				target_yaw = atan2(movement_dir.x, movement_dir.z)
+			
 			mesh_pivot.rotation.y = lerp_angle(mesh_pivot.rotation.y, target_yaw, 15.0 * delta)
 	else:
 		velocity.x = 0
 		velocity.z = 0
+
+# Targeting system callbacks
+func _on_target_acquired(target: Node3D) -> void:
+	print("Target acquired: ", target.name)
+	is_in_combat = true
+
+func _on_target_lost() -> void:
+	print("Target lost")
+	await get_tree().create_timer(2.0).timeout
+	if targeting_system and not targeting_system.is_locked_on():
+		is_in_combat = false
 
 func _try_attack() -> bool:
 	if is_attacking or is_dodging:
@@ -193,16 +279,16 @@ func _attack_sequence() -> void:
 
 func _try_dodge() -> bool:
 	if not can_dodge or is_dodging:
-		print("🚫 Dodge blocked - can_dodge: ", can_dodge, ", is_dodging: ", is_dodging)
+		print("Dodge blocked - can_dodge: ", can_dodge, ", is_dodging: ", is_dodging)
 		return false
 	
-	print("🏃 Starting dodge...")
+	print("Starting dodge...")
 	is_dodging = true
 	can_dodge = false
 	
 	# Get dodge direction based on current input
 	var input_dir = Input.get_vector("move_left", "move_right", "move_forward", "move_back")
-	print("📍 Input direction: ", input_dir)
+	print("Input direction: ", input_dir)
 	
 	var dodge_direction: Vector3
 	
@@ -213,11 +299,11 @@ func _try_dodge() -> bool:
 		# Note: input_dir.y is negative for forward, so we negate it
 		var world_dir: Vector3 = (forward * -input_dir.y + right * input_dir.x).normalized()
 		dodge_direction = world_dir
-		print("🎯 Dodge direction (input-based): ", dodge_direction)
+		print("Dodge direction (input-based): ", dodge_direction)
 	else:
 		# No input - dodge backward
 		dodge_direction = global_transform.basis.z
-		print("🎯 Dodge direction (backward): ", dodge_direction)
+		print("Dodge direction (backward): ", dodge_direction)
 	
 	dodge_direction.y = 0
 	dodge_direction = dodge_direction.normalized()
@@ -226,7 +312,7 @@ func _try_dodge() -> bool:
 	var dodge_velocity = dodge_direction * dodge_distance * 5.0
 	velocity.x = dodge_velocity.x
 	velocity.z = dodge_velocity.z
-	print("⚡ Applied dodge velocity: ", Vector2(velocity.x, velocity.z))
+	print("Applied dodge velocity: ", Vector2(velocity.x, velocity.z))
 	
 	_start_dodge_animation()
 	
@@ -235,36 +321,35 @@ func _try_dodge() -> bool:
 	return true
 
 func _dodge_sequence() -> void:
-	print("🕒 Dodge sequence started")
+	print("Dodge sequence started")
 	# Apply friction during dodge so you don't slide forever
 	var initial_dodge_time = 0.15  # Strong dodge movement
 	var fade_time = 0.25          # Friction fade period
 	
 	await get_tree().create_timer(initial_dodge_time).timeout
-	print("🔥 Initial dodge phase complete, starting fade...")
+	print("Initial dodge phase complete, starting fade...")
 	
 	# Gradually reduce dodge velocity
 	var fade_tween = create_tween()
 	fade_tween.tween_method(_apply_dodge_friction, 1.0, 0.0, fade_time)
 	
 	await fade_tween.finished
-	print("✅ Dodge movement complete")
+	print("Dodge movement complete")
 	is_dodging = false
 	
 	# Dodge cooldown
 	await get_tree().create_timer(dodge_cooldown).timeout
-	print("🔄 Dodge cooldown complete")
+	print("Dodge cooldown complete")
 	can_dodge = true
 
 func _apply_dodge_friction(strength: float) -> void:
 	# Gradually reduce horizontal velocity during dodge fade
-	var old_velocity = Vector2(velocity.x, velocity.z)
 	velocity.x *= (0.85 * strength + 0.15)  # Keep some momentum
 	velocity.z *= (0.85 * strength + 0.15)
 	
 	# Debug output every few frames
 	if Engine.get_process_frames() % 5 == 0:
-		print("🛑 Friction applied - strength: ", strength, " velocity: ", Vector2(velocity.x, velocity.z))
+		print("Friction applied - strength: ", strength, " velocity: ", Vector2(velocity.x, velocity.z))
 
 func _toggle_block() -> void:
 	if is_dodging or is_attacking:
@@ -273,9 +358,9 @@ func _toggle_block() -> void:
 	is_blocking = not is_blocking
 	
 	if is_blocking:
-		print("🛡️ BLOCKING ACTIVE - Damage reduced by ", int(block_reduction * 100), "%")
+		print("BLOCKING ACTIVE - Damage reduced by ", int(block_reduction * 100), "%")
 	else:
-		print("⚔️ Blocking disabled")
+		print("Blocking disabled")
 
 func _check_melee_targets() -> void:
 	var targets = melee_area.get_overlapping_bodies()
@@ -297,7 +382,7 @@ func _attempt_interaction() -> void:
 		if collider and collider.has_method("interact"):
 			collider.interact(self)
 
-func _update_animations(delta: float) -> void:
+func _update_animations(_delta: float) -> void:
 	if not animation_tree:
 		return
 	
@@ -331,10 +416,14 @@ func _consume_buffered_input(action: String) -> bool:
 	return false
 
 func _update_input_buffer(delta: float) -> void:
-	for action in input_buffer.keys():
+	var to_remove: Array = []
+	# iterate over a snapshot so erasing can't invalidate the iterator
+	for action in input_buffer.keys().duplicate():
 		input_buffer[action] -= delta
 		if input_buffer[action] <= 0.0:
-			input_buffer.erase(action)
+			to_remove.append(action)
+	for action in to_remove:
+		input_buffer.erase(action)
 
 # Damage system
 func take_damage(damage: float) -> void:
@@ -344,9 +433,9 @@ func take_damage(damage: float) -> void:
 	var reduced_damage = damage
 	if is_blocking:
 		reduced_damage = damage * block_reduction
-		print("🛡️ BLOCKED! Damage reduced from ", damage, " to ", reduced_damage)
+		print("BLOCKED! Damage reduced from ", damage, " to ", reduced_damage)
 	else:
-		print("💥 Hit for full damage: ", reduced_damage)
+		print("Hit for full damage: ", reduced_damage)
 	
 	health -= reduced_damage
 	health = max(0, health)
@@ -360,6 +449,10 @@ func _handle_death() -> void:
 		
 	is_dead = true
 	print("Player died!")
+	
+	# Clear targeting when dead
+	if targeting_system:
+		targeting_system._clear_target()
 	
 	# Disable player input and movement
 	set_physics_process(false)
@@ -399,10 +492,10 @@ func equip_weapon(weapon_name: String) -> void:
 	equipped_weapon = weapon_name
 	print("Equipped weapon: ", weapon_name)
 
-func _on_melee_target_entered(body) -> void:
+func _on_melee_target_entered(_body) -> void:
 	pass
 
-func _on_melee_target_exited(body) -> void:
+func _on_melee_target_exited(_body) -> void:
 	pass
 
 func capture_mouse() -> void:
@@ -410,3 +503,13 @@ func capture_mouse() -> void:
 
 func release_mouse() -> void:
 	Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
+
+# Called by WorldManager in the future
+func set_game_paused(paused: bool) -> void:
+	can_capture_mouse = not paused
+	if paused:
+		release_mouse()
+	else:
+		# optional: auto-capture when resuming gameplay
+		capture_mouse()
+

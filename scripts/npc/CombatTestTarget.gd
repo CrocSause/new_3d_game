@@ -50,11 +50,17 @@ var current_patrol_index: int = 0
 var wait_timer: float = 0.0
 var player_reference: Node3D = null
 var original_position: Vector3
+var damage_tween: Tween = null
+var flash_tween: Tween = null  
+var shake_tween: Tween = null
+var death_tween: Tween = null
+var nav_ready: bool = false
 
 # ===== EXISTING COMBAT VARIABLES =====
 var health: float
 var original_material: Material
 var hit_material: StandardMaterial3D
+var telegraph_material: StandardMaterial3D
 var is_staggered: bool = false
 var attack_timer: float = 0.0
 var is_attacking: bool = false
@@ -67,11 +73,19 @@ func _ready():
 	_setup_materials()
 	_update_health_bar()
 	
-	# Create red hit flash material
+	# Cached materials (build once, reuse)
 	hit_material = StandardMaterial3D.new()
 	hit_material.albedo_color = Color.RED
 	hit_material.emission_enabled = true
 	hit_material.emission = Color.RED * 0.3
+
+	telegraph_material = StandardMaterial3D.new()
+	telegraph_material.albedo_color = Color.ORANGE
+	telegraph_material.emission_enabled = true
+	telegraph_material.emission = Color.ORANGE * 0.5
+	
+	add_to_group("targetable")
+	add_to_group("enemy")
 	
 	# ===== NEW PATROL INITIALIZATION =====
 	original_position = global_position
@@ -95,6 +109,22 @@ func _ready():
 	call_deferred("_start_patrol")
 	
 	_setup_attack_area()
+
+func _wait_for_nav_sync() -> void:
+	# Wait a few physics frames so NavigationAgent3D binds to the NavigationMap
+	# and the NavigationRegion3D finishes its first sync.
+	if not navigation_agent:
+		return
+	var frames_to_wait := 3  # 3–5 is plenty; keeps it snappy
+	while frames_to_wait > 0:
+		await get_tree().physics_frame
+		frames_to_wait -= 1
+	# Also make sure the agent actually has a valid map RID (some rigs bind a frame later)
+	var map_rid := navigation_agent.get_navigation_map()
+	while not map_rid.is_valid():
+		await get_tree().physics_frame
+		map_rid = navigation_agent.get_navigation_map()
+	nav_ready = true
 
 func _setup_detection_area():
 	"""Set up the detection area for player awareness"""
@@ -120,9 +150,9 @@ func _generate_default_patrol_points():
 	]
 	print("Generated default patrol points for ", name)
 
-func _start_patrol():
-	"""Initialize patrol behavior"""
-	if patrol_points.size() > 0 and patrol_enabled:
+func _start_patrol() -> void:
+	await _wait_for_nav_sync()
+	if patrol_points.size() > 0 and patrol_enabled and navigation_agent:
 		current_state = AIState.PATROL
 		_set_next_patrol_target()
 		print(name, " started patrolling")
@@ -164,6 +194,8 @@ func _update_ai_state(delta):
 			_handle_stunned_state(delta)
 
 func _handle_patrol_state(delta):
+	if not nav_ready or not navigation_agent:
+		return
 	"""Handle patrol movement between waypoints"""
 	if is_staggered or not navigation_agent:
 		return
@@ -280,18 +312,10 @@ func _start_attack():
 	_execute_attack_sequence()
 
 func _show_attack_telegraph():
-	"""Visual indicator that enemy is about to attack"""
-	# Flash orange to warn player
-	var telegraph_material = StandardMaterial3D.new()
-	telegraph_material.albedo_color = Color.ORANGE
-	telegraph_material.emission_enabled = true
-	telegraph_material.emission = Color.ORANGE * 0.5
-	
+	# Reuse cached material; no per-attack allocations
 	mesh.set_surface_override_material(0, telegraph_material)
-	
-	# Restore material after telegraph
 	var tween = create_tween()
-	tween.tween_interval(attack_windup_time * 0.7)  # Show telegraph for most of windup
+	tween.tween_interval(attack_windup_time * 0.7)
 	tween.tween_callback(_restore_material)
 
 func _execute_attack_sequence():
@@ -336,16 +360,8 @@ func _perform_attack_strike():
 		print(name, " attack missed - player out of range")
 
 func _create_attack_effect():
-	"""Create visual effect for successful attack"""
-	# Simple screen shake could be handled by the player
-	# For now, just flash red briefly
-	var hit_material = StandardMaterial3D.new()
-	hit_material.albedo_color = Color.RED
-	hit_material.emission_enabled = true
-	hit_material.emission = Color.RED * 0.3
-	
+	# Reuse cached hit material
 	mesh.set_surface_override_material(0, hit_material)
-	
 	var effect_tween = create_tween()
 	effect_tween.tween_interval(0.1)
 	effect_tween.tween_callback(_restore_material)
@@ -490,8 +506,12 @@ func _trigger_stagger():
 
 func _screen_shake_effect():
 	"""Trigger screen shake effect"""
-	var shake_tween = create_tween()
+	# Kill existing shake tween
+	if shake_tween and shake_tween.is_valid():
+		shake_tween.kill()
+	
 	var original_pos = mesh.position
+	shake_tween = create_tween()
 	
 	for i in range(6):
 		var shake_offset = Vector3(
@@ -506,11 +526,15 @@ func _screen_shake_effect():
 
 func _flash_red():
 	"""Flash red when taking damage"""
+	# Kill existing flash tween
+	if flash_tween and flash_tween.is_valid():
+		flash_tween.kill()
+	
 	mesh.set_surface_override_material(0, hit_material)
 	
-	var tween = create_tween()
-	tween.tween_interval(hit_flash_duration)
-	tween.tween_callback(_restore_material)
+	flash_tween = create_tween()
+	flash_tween.tween_interval(hit_flash_duration)
+	flash_tween.tween_callback(_restore_material)
 
 func _restore_material():
 	"""Restore original material after hit flash"""
@@ -518,17 +542,24 @@ func _restore_material():
 
 func _show_damage_number(damage: float):
 	"""Show floating damage number"""
+	if not damage_label:
+		return
+		
+	# Kill existing damage tween
+	if damage_tween and damage_tween.is_valid():
+		damage_tween.kill()
+	
 	damage_label.text = "-" + str(int(damage))
 	damage_label.modulate = Color.YELLOW
 	damage_label.outline_modulate = Color.BLACK
 	damage_label.outline_size = 8
 	
-	var tween = create_tween()
+	damage_tween = create_tween()
 	var random_x = randf_range(-0.5, 0.5)
-	tween.parallel().tween_property(damage_label, "position", 
+	damage_tween.parallel().tween_property(damage_label, "position", 
 		damage_label.position + Vector3(random_x, 2.5, 0), 1.5)
-	tween.parallel().tween_property(damage_label, "modulate", Color.TRANSPARENT, 1.5)
-	tween.tween_callback(_reset_damage_label)
+	damage_tween.parallel().tween_property(damage_label, "modulate", Color.TRANSPARENT, 1.5)
+	damage_tween.tween_callback(_reset_damage_label)
 
 func _reset_damage_label():
 	"""Reset damage label position and visibility"""
@@ -544,11 +575,19 @@ func _handle_death():
 	"""Handle target death with dramatic effect"""
 	print(name, " destroyed!")
 	
-	# ===== NEW: DISABLE PATROL DURING DEATH =====
+	# Kill all existing tweens
+	if damage_tween and damage_tween.is_valid():
+		damage_tween.kill()
+	if flash_tween and flash_tween.is_valid():
+		flash_tween.kill()
+	if shake_tween and shake_tween.is_valid():
+		shake_tween.kill()
+	if death_tween and death_tween.is_valid():
+		death_tween.kill()
+	
+	# Disable patrol during death
 	patrol_enabled = false
 	current_state = AIState.STUNNED
-	
-	var original_death_position = global_position
 	
 	# Create gray death material
 	var death_material = StandardMaterial3D.new()
@@ -556,7 +595,7 @@ func _handle_death():
 	death_material.roughness = 1.0
 	
 	# Death animation
-	var death_tween = create_tween()
+	death_tween = create_tween()
 	death_tween.parallel().tween_property(mesh, "rotation", Vector3(-PI/2, 0, 0), 0.5)
 	death_tween.parallel().tween_property(mesh, "scale", Vector3(1.2, 0.1, 1.2), 0.5)
 	death_tween.tween_callback(func(): mesh.set_surface_override_material(0, death_material))
@@ -570,9 +609,9 @@ func _handle_death():
 	collision_mask = 0
 	
 	await get_tree().create_timer(3.0).timeout
-	_respawn(original_death_position)
+	_respawn()
 
-func _respawn(death_position: Vector3):
+func _respawn():
 	"""Respawn the test target at original position"""
 	print("Respawning ", name, "...")
 	
@@ -599,10 +638,14 @@ func _respawn(death_position: Vector3):
 	velocity = Vector3.ZERO
 	is_staggered = false
 	player_reference = null
-	
 	_update_health_bar()
 	
-	# ===== NEW: RESTART PATROL =====
+	# --- new: reset agent path before restarting patrol ---
+	nav_ready = false
+	if navigation_agent:
+		# Cancel any existing path by making target == current position
+		navigation_agent.target_position = global_position
+	# Restart patrol next frame so the agent is fully bound to the region
 	call_deferred("_start_patrol")
 	
 	print(name, " respawned and resuming patrol!")
@@ -623,5 +666,16 @@ func toggle_patrol():
 		current_state = AIState.WAITING
 	else:
 		current_state = AIState.PATROL
+	
+func _exit_tree():
+	"""Clean up tweens when node is removed"""
+	if damage_tween and damage_tween.is_valid():
+		damage_tween.kill()
+	if flash_tween and flash_tween.is_valid():
+		flash_tween.kill()
+	if shake_tween and shake_tween.is_valid():
+		shake_tween.kill()
+	if death_tween and death_tween.is_valid():
+		death_tween.kill()
 
 

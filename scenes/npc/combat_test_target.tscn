@@ -1,6 +1,6 @@
 [gd_scene load_steps=5 format=3 uid="uid://b8fanqt6wmmmm"]
 
-[ext_resource type="Script" path="res://scripts/CombatTestTarget.gd" id="1_wi8cj"]
+[ext_resource type="Script" path="res://scripts/npc/CombatTestTarget.gd" id="1_rjn04"]
 
 [sub_resource type="CapsuleShape3D" id="CapsuleShape3D_mon1g"]
 radius = 0.4
@@ -14,8 +14,8 @@ radius = 8.0
 
 [node name="CombatTestTarget" type="CharacterBody3D" groups=["lockable_targets"]]
 collision_layer = 4
-collision_mask = 3
-script = ExtResource("1_wi8cj")
+collision_mask = 11
+script = ExtResource("1_rjn04")
 detection_range = 4.0
 
 [node name="CollisionShape3D" type="CollisionShape3D" parent="."]
@@ -48,11 +48,13 @@ font_size = 24
 [node name="NavigationAgent3D" type="NavigationAgent3D" parent="."]
 
 [node name="DetectionArea" type="Area3D" parent="."]
+collision_layer = 16
 monitorable = false
 
 [node name="DetectionShape" type="CollisionShape3D" parent="DetectionArea"]
 shape = SubResource("SphereShape3D_ljvnx")
 
 [node name="AttackArea" type="Area3D" parent="."]
+collision_layer = 8
 
 [node name="AttackShape" type="CollisionShape3D" parent="AttackArea"]
