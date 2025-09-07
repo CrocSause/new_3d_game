@@ -255,7 +255,7 @@ nodes/walk_anim/node = SubResource("AnimationNodeAnimation_dyifx")
 nodes/walk_anim/position = Vector2(500, 130)
 node_connections = [&"combat_blend", 0, &"movement_blend", &"combat_blend", 1, &"action_state", &"movement_blend", 0, &"idle_anim", &"movement_blend", 1, &"walk_anim", &"output", 0, &"combat_blend"]
 
-[node name="Player" type="CharacterBody3D"]
+[node name="Player" type="CharacterBody3D" groups=["player"]]
 collision_mask = 22
 script = ExtResource("1_o2c5k")
 

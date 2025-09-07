@@ -1,9 +1,10 @@
-[gd_scene load_steps=22 format=3 uid="uid://cadnxpfwar70q"]
+[gd_scene load_steps=23 format=3 uid="uid://cadnxpfwar70q"]
 
 [ext_resource type="PackedScene" uid="uid://cw7a7d30oh8r0" path="res://scenes/player/player.tscn" id="1_6u2if"]
+[ext_resource type="Script" path="res://scripts/levels/TestLevel.gd" id="1_vvjc7"]
 [ext_resource type="PackedScene" uid="uid://b8fanqt6wmmmm" path="res://scenes/npc/combat_test_target.tscn" id="2_w35bc"]
 [ext_resource type="Script" path="res://scenes/levels/CombatHUD.gd" id="3_1cqa5"]
-[ext_resource type="Script" path="res://scripts/ui/PauseMenu.gd" id="3_2gc05"]
+[ext_resource type="PackedScene" uid="uid://djwiw58ggihe5" path="res://scenes/ui/pause_menu.tscn" id="3_150e6"]
 [ext_resource type="Script" path="res://scenes/levels/InteractionPrompt.gd" id="4_m1e27"]
 
 [sub_resource type="StandardMaterial3D" id="StandardMaterial3D_upc4k"]
@@ -61,117 +62,143 @@ polygons = [PackedInt32Array(3, 2, 0), PackedInt32Array(0, 2, 1)]
 size = Vector3(50, 1, 50)
 
 [node name="TestLevel" type="Node3D"]
+script = ExtResource("1_vvjc7")
 
 [node name="UILayer" type="CanvasLayer" parent="."]
 
 [node name="CombatHud" type="Control" parent="UILayer"]
 layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+mouse_filter = 2
 script = ExtResource("3_1cqa5")
-
-[node name="HealthBar" type="ProgressBar" parent="UILayer/CombatHud"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_right = 4.0
-offset_bottom = 27.0
-
-[node name="HealthText" type="Label" parent="UILayer/CombatHud"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_left = 10.0
-offset_top = 10.0
-offset_right = 538.0
-offset_bottom = 60.0
-text = "WASD: Move | Mouse: Look | Shift: Run | Ctrl: Crouch | Tab: Combat"
-
-[node name="StaminaBar" type="ProgressBar" parent="UILayer/CombatHud"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_right = 4.0
-offset_bottom = 27.0
 
 [node name="CombatIndicator" type="Label" parent="UILayer/CombatHud"]
 unique_name_in_owner = true
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
+layout_mode = 1
+anchors_preset = 10
+anchor_right = 1.0
+offset_top = 30.0
+offset_bottom = 53.0
+grow_horizontal = 2
+theme_override_font_sizes/font_size = 24
+horizontal_alignment = 1
 
 [node name="TargetInfo" type="Control" parent="UILayer/CombatHud"]
 unique_name_in_owner = true
-anchors_preset = 0
-offset_right = 40.0
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
 offset_bottom = 40.0
+grow_horizontal = 0
 
 [node name="TargetName" type="Label" parent="UILayer/CombatHud/TargetInfo"]
 unique_name_in_owner = true
-layout_mode = 0
-offset_right = 40.0
+layout_mode = 1
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -40.0
 offset_bottom = 23.0
+grow_horizontal = 0
 
 [node name="Crosshair" type="Control" parent="UILayer/CombatHud"]
 unique_name_in_owner = true
-anchors_preset = 0
+layout_mode = 1
+anchors_preset = 8
+anchor_left = 0.5
+anchor_top = 0.5
+anchor_right = 0.5
+anchor_bottom = 0.5
+offset_left = -20.0
+offset_top = -20.0
+offset_right = 20.0
+offset_bottom = 20.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="TopLeft" type="MarginContainer" parent="UILayer/CombatHud"]
+layout_mode = 1
 offset_right = 40.0
 offset_bottom = 40.0
+theme_override_constants/margin_right = 420
+theme_override_constants/margin_bottom = 120
+
+[node name="Bars" type="VBoxContainer" parent="UILayer/CombatHud/TopLeft"]
+layout_mode = 2
+theme_override_constants/separation = 6
+
+[node name="HealthBar" type="ProgressBar" parent="UILayer/CombatHud/TopLeft/Bars"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_vertical = 2
+
+[node name="HealthText" type="Label" parent="UILayer/CombatHud/TopLeft/Bars"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 20
+text = "100 / 100"
+
+[node name="StaminaBar" type="ProgressBar" parent="UILayer/CombatHud/TopLeft/Bars"]
+unique_name_in_owner = true
+custom_minimum_size = Vector2(360, 0)
+layout_mode = 2
+size_flags_vertical = 2
 
 [node name="InteractionPrompt" type="Control" parent="UILayer"]
 layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
+anchors_preset = 12
+anchor_top = 1.0
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 0
+mouse_filter = 2
 script = ExtResource("4_m1e27")
 
-[node name="PromptLabel" type="Label" parent="UILayer/InteractionPrompt"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
+[node name="HBoxContainer" type="HBoxContainer" parent="UILayer/InteractionPrompt"]
+layout_mode = 1
+anchors_preset = 7
+anchor_left = 0.5
+anchor_top = 1.0
+anchor_right = 0.5
+anchor_bottom = 1.0
+offset_left = -111.5
+offset_top = -26.0
+offset_right = 111.5
+grow_horizontal = 2
+grow_vertical = 0
+theme_override_constants/separation = 12
 
-[node name="KeyHint" type="Label" parent="UILayer/InteractionPrompt"]
+[node name="PromptLabel" type="Label" parent="UILayer/InteractionPrompt/HBoxContainer"]
 unique_name_in_owner = true
-layout_mode = 0
-offset_right = 40.0
-offset_bottom = 23.0
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+
+[node name="KeyHint" type="Label" parent="UILayer/InteractionPrompt/HBoxContainer"]
+unique_name_in_owner = true
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "[E]"
 
 [node name="Background" type="NinePatchRect" parent="UILayer/InteractionPrompt"]
 unique_name_in_owner = true
+custom_minimum_size = Vector2(320, 40)
 layout_mode = 0
 offset_right = 40.0
 offset_bottom = 40.0
+patch_margin_left = 8
+patch_margin_top = 8
+patch_margin_right = 8
+patch_margin_bottom = 8
 
-[node name="PauseMenu" type="Control" parent="UILayer"]
-process_mode = 3
-layout_mode = 3
-anchors_preset = 0
-offset_right = 40.0
-offset_bottom = 40.0
-script = ExtResource("3_2gc05")
-
-[node name="ResumeButton" type="Button" parent="UILayer/PauseMenu"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
-
-[node name="OptionsButton" type="Button" parent="UILayer/PauseMenu"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
-
-[node name="MainMenuButton" type="Button" parent="UILayer/PauseMenu"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
-
-[node name="QuitButton" type="Button" parent="UILayer/PauseMenu"]
-unique_name_in_owner = true
-layout_mode = 0
-offset_right = 8.0
-offset_bottom = 8.0
+[node name="PauseMenu" parent="UILayer" instance=ExtResource("3_150e6")]
 
 [node name="Player" parent="." instance=ExtResource("1_6u2if")]
 transform = Transform3D(1, 0, 0, 0, 1, 0, 0, 0, 1, 0, 1, 0)

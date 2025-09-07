@@ -13,131 +13,78 @@ class_name CombatHUD
 var player: PlayerController = null
 
 func _ready():
-	# Hide initially
 	visible = true
-	
-	# Set up UI defaults
-	health_bar.max_value = 100
-	health_bar.value = 100
-	stamina_bar.max_value = 100
-	stamina_bar.value = 100
-	
-	# Hide targeting UI initially
-	if target_info:
-		target_info.visible = false
-	
-	# Find player reference
-	_find_player_reference()
+	if target_info: target_info.visible = false
+	if crosshair: crosshair.visible = false
 
-func _find_player_reference():
-	# Look for player in the scene
-	var players = get_tree().get_nodes_in_group("player")
-	if players.size() > 0:
-		player = players[0] as PlayerController
-		_connect_player_signals()
+func bind_player(p: PlayerController) -> void:
+	player = p
+	if not player: return
 
-func _connect_player_signals():
-	if not player:
-		return
-	
-	# Connect to targeting system if available
-	if player.targeting_system:
+	# Initial push
+	set_health(player.health, player.max_health)
+	set_stamina(player.stamina, player.max_stamina)
+	_set_combat_state(player.is_in_combat)
+
+	# Signals
+	player.health_changed.connect(set_health)
+	player.stamina_changed.connect(set_stamina)
+	player.took_damage.connect(func(amount: float): show_damage_indicator(amount))
+	player.combat_state_changed.connect(_set_combat_state)
+
+	# Optional: if your player (or its targeting system) emits these:
+	if "targeting_system" in player and player.targeting_system:
 		player.targeting_system.target_acquired.connect(_on_target_acquired)
 		player.targeting_system.target_lost.connect(_on_target_lost)
+	elif player.has_signal("lockon_target_acquired"):
+		player.lockon_target_acquired.connect(_on_target_acquired)
+		player.lockon_target_lost.connect(_on_target_lost)
 
-func _process(_delta):
-	if not player:
-		return
-	
-	# Update health
-	_update_health_display()
-	
-	# Update stamina (placeholder - you'll need to add stamina to PlayerController)
-	_update_stamina_display()
-	
-	# Update combat state indicator
-	_update_combat_indicator()
-
-func _update_health_display():
-	if not health_bar or not health_text:
-		return
-	
-	var current_health = player.health
-	var max_health = player.max_health
-	
+func set_health(current_health: float, max_health: float) -> void:
+	if not health_bar or not health_text: return
 	health_bar.max_value = max_health
 	health_bar.value = current_health
-	
 	health_text.text = str(int(current_health)) + " / " + str(int(max_health))
-	
-	# Color coding for health bar
-	if current_health / max_health > 0.6:
+	var ratio := 0.0 if max_health <= 0.0 else current_health / max_health
+	if ratio > 0.6:
 		health_bar.modulate = Color.GREEN
-	elif current_health / max_health > 0.3:
+	elif ratio > 0.3:
 		health_bar.modulate = Color.YELLOW
 	else:
 		health_bar.modulate = Color.RED
 
-func _update_stamina_display():
-	if not stamina_bar:
-		return
-	
-	# Placeholder - you'll need to add stamina system to PlayerController
-	# For now, show dodge cooldown as "stamina"
-	var stamina_value = 100.0
-	if not player.can_dodge:
-		stamina_value = 30.0  # Low when dodge is on cooldown
-	
-	stamina_bar.value = stamina_value
+func set_stamina(current: float, maxv: float) -> void:
+	if not stamina_bar: return
+	stamina_bar.max_value = maxv
+	stamina_bar.value = current
 
-func _update_combat_indicator():
-	if not combat_indicator:
-		return
-	
-	if player.is_in_combat:
+func _set_combat_state(in_combat: bool) -> void:
+	if not combat_indicator: return
+	combat_indicator.visible = in_combat
+	if in_combat:
 		combat_indicator.text = "COMBAT"
 		combat_indicator.modulate = Color.RED
-		combat_indicator.visible = true
-	else:
-		combat_indicator.visible = false
 
 func _on_target_acquired(target: Node3D):
-	if not target_info or not target_name:
-		return
-	
-	target_info.visible = true
-	target_name.text = target.name
-	
-	# Show crosshair when locked on
-	if crosshair:
-		crosshair.visible = true
+	if target_info: target_info.visible = true
+	if target_name: target_name.text = target.name
+	if crosshair: crosshair.visible = true
 
 func _on_target_lost():
-	if target_info:
-		target_info.visible = false
-	
-	if crosshair:
-		crosshair.visible = false
+	if target_info: target_info.visible = false
+	if crosshair: crosshair.visible = false
 
-# Call this from other systems to show damage
+# Floating damage indicator
 func show_damage_indicator(amount: float):
-	# Create floating damage text
-	var damage_label = Label.new()
+	var damage_label := Label.new()
 	damage_label.text = "-" + str(int(amount))
 	damage_label.modulate = Color.RED
 	damage_label.add_theme_font_size_override("font_size", 24)
-	
-	# Position near center of screen
-	damage_label.position = Vector2(
-		get_viewport().get_visible_rect().size.x * 0.5,
-		get_viewport().get_visible_rect().size.y * 0.4
-	)
-	
+	damage_label.position = Vector2(get_viewport().get_visible_rect().size.x * 0.5,
+		get_viewport().get_visible_rect().size.y * 0.4)
 	add_child(damage_label)
-	
-	# Animate damage text
 	var tween = create_tween()
-	tween.parallel().tween_property(damage_label, "position", 
+	tween.parallel().tween_property(damage_label, "position",
 		damage_label.position + Vector2(randf_range(-50, 50), -100), 1.0)
 	tween.parallel().tween_property(damage_label, "modulate", Color.TRANSPARENT, 1.0)
 	tween.tween_callback(damage_label.queue_free)

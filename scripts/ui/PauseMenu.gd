@@ -1,83 +1,62 @@
-# File: scripts/ui/PauseMenu.gd
 extends Control
 class_name PauseMenu
 
-@onready var resume_btn: Button = %ResumeButton
-@onready var options_btn: Button = %OptionsButton  
-@onready var main_menu_btn: Button = %MainMenuButton
-@onready var quit_btn: Button = %QuitButton
+# Simple pause overlay - just a label and semi-transparent background
+@onready var background: ColorRect = $Background
+@onready var pause_label: Label = $PauseLabel
 
-var options_popup: PopupPanel = null
 var is_paused: bool = false
 
 func _ready():
-	# CRITICAL: Set process mode to continue working when paused
+	# Must work when paused
 	process_mode = Node.PROCESS_MODE_ALWAYS
-	# Hide initially
+	process_priority = 10
 	visible = false
 	
-	# Set higher process priority to intercept input first
-	process_priority = 10
+	# Create background if it doesn't exist
+	if not background:
+		background = ColorRect.new()
+		background.name = "Background"
+		background.color = Color(0, 0, 0, 0.5)  # Semi-transparent black
+		background.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(background)
+		move_child(background, 0)  # Send to back
 	
-	# Resolve options popup
-	if has_node("%OptionsMenu"):
-		options_popup = %OptionsMenu
-		# Make sure options popup also works when paused
-		options_popup.process_mode = Node.PROCESS_MODE_ALWAYS
-	
-	# Connect buttons
-	resume_btn.pressed.connect(_on_resume_pressed)
-	options_btn.pressed.connect(_on_options_pressed)
-	main_menu_btn.pressed.connect(_on_main_menu_pressed)
-	quit_btn.pressed.connect(_on_quit_pressed)
+	# Create label if it doesn't exist
+	if not pause_label:
+		pause_label = Label.new()
+		pause_label.name = "PauseLabel"
+		pause_label.text = "PAUSED\nPress P to Resume"
+		pause_label.add_theme_font_size_override("font_size", 48)
+		pause_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		pause_label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+		pause_label.set_anchors_preset(Control.PRESET_FULL_RECT)
+		add_child(pause_label)
 
 func _input(event: InputEvent):
-	if event.is_action_pressed("ui_cancel"):  # Use existing ui_cancel mapping
-		if is_paused:
-			# If paused, resume game
-			_set_pause_state(false)
-		else:
-			# If not paused, pause game
-			_set_pause_state(true)
+	# Toggle pause on P key
+	if event.is_action_pressed("pause"):  # We'll add this to Input Map
+		toggle_pause()
 		get_viewport().set_input_as_handled()
 
 func toggle_pause():
-	is_paused = !is_paused
-	_set_pause_state(is_paused)
+	set_pause_state(not is_paused)
 
-func _set_pause_state(paused: bool):
+func set_pause_state(paused: bool):
+	if is_paused == paused:
+		return
+	
 	is_paused = paused
 	visible = paused
-	
-	print("Setting pause state to: ", paused)  # Debug output
-	
-	# Notify WorldManager
-	if WorldManager:
-		WorldManager.set_game_paused(paused)
-	
-	# Handle mouse cursor
-	if paused:
-		Input.set_mouse_mode(Input.MOUSE_MODE_VISIBLE)
-		resume_btn.grab_focus()
-	else:
-		Input.set_mouse_mode(Input.MOUSE_MODE_CAPTURED)
-	
-	# Pause game tree (exclude UI processing)
 	get_tree().paused = paused
 	
-	print("Game tree paused: ", get_tree().paused)  # Debug output
-	print("PauseMenu visible: ", visible)  # Debug output
+	if paused:
+		# Don't change mouse mode - let player keep control
+		print("Game paused (P to resume)")
+	else:
+		print("Game resumed")
 
-func _on_resume_pressed():
-	_set_pause_state(false)
-
-func _on_options_pressed():
-	if options_popup:
-		options_popup.popup_centered()
-
-func _on_main_menu_pressed():
-	_set_pause_state(false)
-	WorldManager.request_scene_change(WorldManager.SceneID.MAIN_MENU)
-
-func _on_quit_pressed():
-	get_tree().quit()
+# Public API
+func force_unpause():
+	if is_paused:
+		set_pause_state(false)

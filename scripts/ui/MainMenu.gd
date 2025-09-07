@@ -19,6 +19,9 @@ func _ready() -> void:
 	# Resolve Options popup by unique name (supports either OptionsMenu or Options)
 	if has_node("%OptionsMenu"):
 		options_popup = %OptionsMenu
+		options_popup.visible = false
+		options_popup.hide()  # PopupPanel-specific hide method
+		print("Options menu hidden on startup")
 	elif has_node("%Options"):
 		options_popup = %Options
 	else:

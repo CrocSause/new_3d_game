@@ -10,72 +10,38 @@ var current_interactable: Node = null
 var player: PlayerController = null
 
 func _ready():
-	# Hide initially
 	visible = false
-	
-	# Find player reference
-	_find_player_reference()
-	
-	# Set up default appearance
-	if key_hint:
-		key_hint.text = "[E]"
+	if key_hint: key_hint.text = "[E]"
 
-func _find_player_reference():
-	var players = get_tree().get_nodes_in_group("player")
-	if players.size() > 0:
-		player = players[0] as PlayerController
+func bind_player(p: PlayerController) -> void:
+	player = p
+	if not player: return
+	player.interaction_target_changed.connect(_on_target_changed)
 
-func _process(_delta):
-	if not player:
-		return
-	
-	_check_for_interactables()
-
-func _check_for_interactables():
-	var raycast = player.interaction_raycast
-	if not raycast:
-		return
-	
-	if raycast.is_colliding():
-		var collider = raycast.get_collider()
-		if collider and collider.has_method("get_interaction_text"):
-			_show_prompt(collider)
-		else:
-			_hide_prompt()
+func _on_target_changed(target: Node) -> void:
+	if target and target.has_method("get_interaction_text"):
+		_show_prompt(target)
 	else:
 		_hide_prompt()
 
 func _show_prompt(interactable: Node):
-	if current_interactable == interactable:
-		return  # Already showing this prompt
-	
+	if current_interactable == interactable: return
 	current_interactable = interactable
-	
-	# Get interaction text from the object
-	var interaction_text = ""
+	var interaction_text := "Interact"
 	if interactable.has_method("get_interaction_text"):
 		interaction_text = interactable.get_interaction_text()
-	else:
-		interaction_text = "Interact"
-	
-	if prompt_label:
-		prompt_label.text = interaction_text
-	
+	if prompt_label: prompt_label.text = interaction_text
 	visible = true
 
 func _hide_prompt():
-	if current_interactable == null:
-		return  # Already hidden
-	
+	if current_interactable == null: return
 	current_interactable = null
 	visible = false
 
-# Call this to manually show a prompt (for cutscenes, etc.)
+# Manual control (cutscenes, etc.)
 func show_custom_prompt(text: String, key: String = "[E]"):
-	if prompt_label:
-		prompt_label.text = text
-	if key_hint:
-		key_hint.text = key
+	if prompt_label: prompt_label.text = text
+	if key_hint: key_hint.text = key
 	visible = true
 
 func hide_custom_prompt():

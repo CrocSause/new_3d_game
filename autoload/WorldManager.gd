@@ -68,10 +68,6 @@ func reload_current_scene(with_transition: bool = true) -> void:
 		return
 	await request_scene_change(_current_scene_id, with_transition)
 
-# Centralized pause hook (we won't globally pause the tree; this just broadcasts)
-func set_game_paused(paused: bool) -> void:
-	game_paused.emit(paused)
-
 # -----------------------
 # Internals
 # -----------------------
